@@ -1,5 +1,6 @@
 import argparse
 import os
+from pathlib import Path
 
 def setup_argument_parser():
     parser = argparse.ArgumentParser(
@@ -24,18 +25,22 @@ def main():
 
     # Use directory path from arguments
     target_dir = args.directory
+    target_path = Path(target_dir)
+
+    # Check if the directory exists
     if not os.path.exists(target_dir):
         print(f"Directory {target_dir} does not exist.")
         return
     
-    if os.path.isdir(target_dir):
-        print(f"Target directory '{target_dir}' already exists")
+    # Create the target directory if it doesn't exist
+    if target_path.is_dir():
+        print(f"Target directory '{target_path}' already exists")
     else:
         try:
-            os.makedirs(target_dir)
-            print(f"Created directory '{target_dir}'")
-        except OSError as e:
-            print(f"Error creating directory '{target_dir}': {e}")
+            target_path.mkdir(parents=True, exist_ok=True)
+            print(f"Created directory: {target_path}")
+        except Exception as e:
+            print(f"Error creating directory '{target_path}': {e}")
             return
 
         
