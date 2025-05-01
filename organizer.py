@@ -30,37 +30,49 @@ def scan_directory(directory_path):
     return files
 
 
-def create_destination_folders(base_directory, organization_type="extension"):
+def create_destination_folders(base_directory, files, organization_type="extension"):
     """
-    Create destination folders based on the organization type.
+    Create destination folders based on the organization type and existing files.
     """
     base_dir = Path(base_directory)
+    created_folders = {}
 
     if not base_dir.exists():
         logging.error(f"Base directory {base_directory} does not exist.")
-        return
+        return created_folders
 
     if organization_type == "extension":
-        from file_utils import get_file_extension
-        folders = list(FILE_EXTENSIONS.keys()) + ["Other"]
+        # First scan files to determine which categories are needed
+        needed_categories = set()
+        for file in files:
+            category = get_file_category(file)
+            needed_categories.add(category)
+
+        # Only create folders for existing files
+        for category in needed_categories:
+            folder_path = base_dir / category
+            try:
+                folder_path.mkdir(exist_ok=True)
+                created_folders[category] = folder_path
+                logging.info(f"Created folder: {folder_path}")
+            except Exception as e:
+                logging.error(f"Error creating folder {folder_path}: {e}")
+
     elif organization_type == "size":
         folders = ["Small", "Medium", "Large"]
+        for folder in folders:
+            folder_path = base_dir / folder
+            try:
+                folder_path.mkdir(exist_ok=True)
+                created_folders[folder] = folder_path
+                logging.info(f"Created folder: {folder_path}")
+            except Exception as e:
+                logging.error(f"Error creating folder {folder_path}: {e}")
+
     elif organization_type == "date":
-        folders = []
-    else:
-        folders = []
+        pass
 
-    created_folders = {}
-    for folder in folders:
-        folder_path = base_dir / folder
-        try:
-            folder_path.mkdir(parents=True, exist_ok=True)
-            created_folders[folder] = folder_path
-            logging.info(f"Created folder: {folder_path}")
-        except Exception as e:
-            logging.error(f"Error creating folder {folder_path}: {e}")
-
-        return created_folders
+    return created_folders
 
 
 def organize_files(source_directory, organization_type="extension", copy=False, dry_run=False):
@@ -89,18 +101,36 @@ def organize_files(source_directory, organization_type="extension", copy=False, 
     if not files:
         return {"error": "No files found or directory is empty."}
     
-    # Create destination folders
-    dest_folders = create_destination_folders(source_dir, organization_type)
-    if not dest_folders:
+    # Create destination folders - pass files list
+    dest_folders = create_destination_folders(source_dir, files, organization_type)
+    if not dest_folders and organization_type != "date":
         logging.error("No destination folders created.")
         return
     
+    # Initialize stats
     stats = {
         "total_files": len(files),
         "organized_files": 0,
         "skipped_files": 0,
         "errors": 0,
+        "status": "success"
     }
+
+    if not source_dir.exists() or not source_dir.is_dir():
+        logging.error(f"{source_directory} is not a valid directory.")
+        stats["status"] = "error"
+        stats["error_message"] = "Invalid directory"
+        return stats
+    
+    # Get all files
+    files = scan_directory(source_dir)
+    stats["total_files"] = len(files)
+    
+    if not files:
+        logging.info(f"No files to organize in {source_directory}")
+        stats["status"] = "empty"
+        stats["error_message"] = "Directory is empty or contains no files"
+        return stats    
 
     # Process each file
     for file in files:

@@ -68,27 +68,49 @@ def main():
     if not os.path.exists(directory):
         print(f"Error: '{directory}' is not a valid directory.")
         return 1
-    
-    print(f"Organizing files in '{directory}' by {args.org_type}...")
-    if args.dry_run:
-        print("DRY RUN MODE: No changes will be made.")
 
-    stats = organize_files(
-        directory, 
-        organization_type=args.org_type,
-        copy=args.copy,
-        dry_run=args.dry_run
-    )
-
-    if args.report:
-        report = generate_report(stats, directory, args.org_type)
-        print("\n" + report)
-    else:
-        print(f"\nDone! Organized {stats['organized_files']} files.")
-        if stats['errors'] > 0:
-            print(f"Encountered {stats['errors']} errors. Check the logs for details.")
-
-    return 0
+    try:
+        print(f"Organizing files in '{directory}' by {args.org_type}...")
+        if args.dry_run:
+            print("DRY RUN MODE: No changes will be made.")
+                        
+        stats = organize_files(
+            args.directory,
+            organization_type=args.org_type,
+            copy=args.copy,
+            dry_run=args.dry_run
+        )
+        
+        if not stats:
+            print("\nError: Organization failed.")
+            return 1
+            
+        if stats.get("status") == "empty":
+            print(f"\nDone! No files to organize")
+            return 0
+            
+        if stats.get("status") == "error":
+            print(f"\nError: {stats.get('error_message', 'Unknown error occurred')}")
+            return 1
+            
+        # Print success message
+        if stats.get('organized_files', 0) > 0:
+            print(f"\nDone! Organized {stats.get('organized_files', 0)} files.")
+            if stats.get('skipped_files', 0) > 0:
+                print(f"Skipped {stats['skipped_files']} files.")
+            if stats.get('errors', 0) > 0:
+                print(f"Encountered {stats['errors']} errors.")
+        else:
+            print(f"\nDone! No files to organize")
+            
+        if args.report:
+            print("\n" + generate_report(stats, directory, args.org_type))       
+            
+        return 0
+        
+    except Exception as e:
+        print(f"\nError: {str(e)}")
+        return 1
 
 if __name__ == "__main__":
     exit(main())
