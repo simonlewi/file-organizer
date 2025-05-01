@@ -1,47 +1,96 @@
 import argparse
 import os
 from pathlib import Path
-
-def setup_argument_parser():
-    parser = argparse.ArgumentParser(
-        description="Organize files in a directory."
-        )
-    parser.add_argument(
-        "directory", 
-        type=str, 
-        help="Directory to organize"
-        )
-    parser.add_argument(
-        "--by-type", 
-        type=str, 
-        nargs='+', 
-        help="Organize files by type")
-    
-    return parser.parse_args()
+from organizer import organize_files
+from reports import generate_report
 
 def main():
-    # Get command line arguments
-    args = setup_argument_parser()
-
-    # Use directory path from arguments
-    target_dir = args.directory
-    target_path = Path(target_dir)
-
-    # Check if the directory exists
-    if not os.path.exists(target_dir):
-        print(f"Directory {target_dir} does not exist.")
-        return
+    # Set up argument parser
+    parser = argparse.ArgumentParser(
+        description="Organize files in a directory by type, date or size."
+    )
     
-    # Create the target directory if it doesn't exist
-    if target_path.is_dir():
-        print(f"Target directory '{target_path}' already exists")
+    parser.add_argument(
+        "directory", 
+        help="Directory path to organize"
+    )
+    
+    parser.add_argument(
+        "--by-type", 
+        dest="org_type", 
+        action="store_const",
+        const="extension",
+        default="extension", 
+        help="Organize files by type (default)"
+    )
+
+    parser.add_argument(
+        "--by-date",
+        dest="org_type",
+        action="store_const",
+        const="date",
+        help="Organize files by date"
+    )
+
+    parser.add_argument(
+        "--by-size",
+        dest="org_type",
+        action="store_const",
+        const="size",
+        help="Organize files by size"
+    )
+
+    parser.add_argument(
+        "--copy",
+        action="store_true",
+        help="Copy files instead of moving them"
+    )
+
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be done without making changes"
+    )
+
+    parser.add_argument(
+        "--report",
+        action="store_true",
+        help="Generate a report after organizing files"
+    )
+
+    # Parse aguments
+    args = parser.parse_args()
+
+    # Process the directory
+    directory = args.directory
+
+    if not os.path.exists(directory):
+        print(f"Error: '{directory}' is not a valid directory.")
+        return 1
+    
+    print(f"Organizing files in '{directory}' by {args.org_type}...")
+    if args.dry_run:
+        print("DRY RUN MODE: No changes will be made.")
+
+    stats = organize_files(
+        directory, 
+        organization_type=args.org_type,
+        copy=args.copy,
+        dry_run=args.dry_run
+    )
+
+    if args.report:
+        report = generate_report(stats, directory, args.org_type)
+        print("\n" + report)
     else:
-        try:
-            target_path.mkdir(parents=True, exist_ok=True)
-            print(f"Created directory: {target_path}")
-        except Exception as e:
-            print(f"Error creating directory '{target_path}': {e}")
-            return
+        print(f"\nDone! Organized {stats['organized_files']} files.")
+        if stats['errors'] > 0:
+            print(f"Encountered {stats['errors']} errors. Check the logs for details.")
+
+    return 0
+
+if __name__ == "__main__":
+    exit(main())
 
         
         
