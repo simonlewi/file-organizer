@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import logging
 from pathlib import Path
 from organizer import organize_files
 from reports import generate_report
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 
 def main():
     # Set up argument parser
@@ -66,13 +72,13 @@ def main():
     directory = args.directory
 
     if not os.path.exists(directory):
-        print(f"Error: '{directory}' is not a valid directory.")
+        logging.error(f"Error: '{directory}' is not a valid directory.")
         return 1
 
     try:
-        print(f"Organizing files in '{directory}' by {args.org_type}...")
+        logging.info(f"Organizing files in '{directory}' by {args.org_type}...")
         if args.dry_run:
-            print("DRY RUN MODE: No changes will be made.")
+            logging.info("DRY RUN MODE: No changes will be made.")
                         
         stats = organize_files(
             args.directory,
@@ -82,26 +88,26 @@ def main():
         )
         
         if not stats:
-            print("\nError: Organization failed.")
+            logging.error("\nError: Organization failed.")
             return 1
             
         if stats.get("status") == "empty":
-            print(f"\nDone! No files to organize")
+            logging.info(f"\nDone! No files to organize")
             return 0
             
         if stats.get("status") == "error":
-            print(f"\nError: {stats.get('error_message', 'Unknown error occurred')}")
+            logging.error(f"\nError: {stats.get('error_message', 'Unknown error occurred')}")
             return 1
             
         # Print success message
         if stats.get('organized_files', 0) > 0:
-            print(f"\nDone! Organized {stats.get('organized_files', 0)} files.")
+            logging.info(f"\nDone! Organized {stats.get('organized_files', 0)} files.")
             if stats.get('skipped_files', 0) > 0:
-                print(f"Skipped {stats['skipped_files']} files.")
+                logging.info(f"Skipped {stats['skipped_files']} files.")
             if stats.get('errors', 0) > 0:
-                print(f"Encountered {stats['errors']} errors.")
+                logging.warning(f"Encountered {stats['errors']} errors.")
         else:
-            print(f"\nDone! No files to organize")
+            logging.info(f"\nDone! No files to organize")
             
         if args.report:
             print("\n" + generate_report(stats, directory, args.org_type))       
@@ -109,7 +115,7 @@ def main():
         return 0
         
     except Exception as e:
-        print(f"\nError: {str(e)}")
+        logging.error(f"\nError: {str(e)}")
         return 1
 
 if __name__ == "__main__":
