@@ -88,7 +88,7 @@ def main():
         )
         
         if not stats:
-            logging.error("\nError: Organization failed.")
+            logging.error("Error: Organization failed.")
             return 1
             
         if stats.get("status") == "empty":
@@ -96,18 +96,18 @@ def main():
             return 0
             
         if stats.get("status") == "error":
-            logging.error(f"\nError: {stats.get('error_message', 'Unknown error occurred')}")
+            logging.error(f"Error: {stats.get('error_message', 'Unknown error occurred')}")
             return 1
             
         # Print success message
         if stats.get('organized_files', 0) > 0:
-            logging.info(f"\nDone! Organized {stats.get('organized_files', 0)} files.")
+            logging.info(f"Done! Organized {stats.get('organized_files', 0)} files.")
             if stats.get('skipped_files', 0) > 0:
                 logging.info(f"Skipped {stats['skipped_files']} files.")
             if stats.get('errors', 0) > 0:
                 logging.warning(f"Encountered {stats['errors']} errors.")
         else:
-            logging.info(f"\nDone! No files to organize")
+            logging.info(f"Done! No files to organize")
             
         if args.report:
             print("\n" + generate_report(stats, directory, args.org_type))       
@@ -115,7 +115,7 @@ def main():
         return 0
         
     except Exception as e:
-        logging.error(f"\nError: {str(e)}")
+        logging.error(f"Error: {str(e)}")
         return 1
 
 if __name__ == "__main__":
